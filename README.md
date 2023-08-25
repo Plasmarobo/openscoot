@@ -43,23 +43,27 @@ I2C - SSD, NFC
 Serial1 - GPS
 ### TFT
 Uses `SPI`
-Uses Pin - CS (7)
-Uses Pin - Backlite (45) 
-Uses Pin - Pwr (21)
+Uses Pin - CS (D7)
+Uses Pin - Backlite (45 internal / )
+Uses Pin - Pwr (21 internal / )
+
+## OLED
+Uses `I2C`
+Addr
 
 ## GPS Featherwing
 Uses `Serial1`
 
 ## CAN Featherwing
 Uses `SPI`
-Uses Pin 5 - CS
-Uses Pin 6 - INT
+Uses Pin D5 - CS
+Uses Pin D6 - INT
 
 ## LORA Featherwing
 Uses `SPI`
-Configure Pin C (9)- CS
-Configure Pin D (10) - INT
-Configure Pin E (11) - RST
+Configure Pin C (D9)- CS
+Configure Pin D (D10) - INT
+Configure Pin E (D11) - RST
 
 ## Seven segment featherwing
 Uses `I2C`
@@ -69,3 +73,6 @@ Addr
 Uses `I2C`
 Configure Pin 12 - INT
 Addr
+
+# Analog Throttle
+A0 - GPIO10 - 
