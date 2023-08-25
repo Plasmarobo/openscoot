@@ -1,2 +1,71 @@
 # openscoot
 An open source CAN based escooter controller
+
+# Primary design
+Focus on throttle response, ebraking performance, and power management.
+
+## Throttle smoothing and braking
+The throttle response should be smoothed, with different coefficients for increase and decrease.
+Braking performance needs to be maintained, and should override throttle smoothing.
+
+## Ebraking & Speed Control
+
+
+## GPS Tracking and positioning
+
+## Anti-theft/Authentication
+
+## Power management and reporting
+
+## Connection Managment
+
+### Wifi
+
+### LoRA
+
+### Cell
+NOT IMPLEMENTED
+
+## Display
+
+## Power profiles
+
+# Known bugs/limitations
+
+# HardwareStack
+
+## ESP32-S2 Reverse TFT
+Available pins:
+
+Available interfaces:
+SPI - CAN, LORA
+I2C - SSD, NFC
+Serial1 - GPS
+### TFT
+Uses `SPI`
+Uses Pin - CS (7)
+Uses Pin - Backlite (45) 
+Uses Pin - Pwr (21)
+
+## GPS Featherwing
+Uses `Serial1`
+
+## CAN Featherwing
+Uses `SPI`
+Uses Pin 5 - CS
+Uses Pin 6 - INT
+
+## LORA Featherwing
+Uses `SPI`
+Configure Pin C (9)- CS
+Configure Pin D (10) - INT
+Configure Pin E (11) - RST
+
+## Seven segment featherwing
+Uses `I2C`
+Addr
+
+## NFC eeprom
+Uses `I2C`
+Configure Pin 12 - INT
+Addr
