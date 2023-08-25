@@ -9,13 +9,14 @@ The throttle response should be smoothed, with different coefficients for increa
 Braking performance needs to be maintained, and should override throttle smoothing.
 
 ## Ebraking & Speed Control
-
+Handled by VESC
 
 ## GPS Tracking and positioning
 
 ## Anti-theft/Authentication
 
 ## Power management and reporting
+Handled by VESC
 
 ## Connection Managment
 
