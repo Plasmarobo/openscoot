@@ -9,11 +9,18 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "cppdbg",
+            "request": "launch",
+            "name": "Native debug",
+            "program": "${workspaceFolder}/.pio/build/native/program.exe",
+            "cwd": "${workspaceFolder}"
+        },
+        {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32/firmware.elf",
-            "projectEnvName": "featheresp32",
+            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32rev/firmware.elf",
+            "projectEnvName": "native",
             "toolchainBinDir": "C:/Users/ahigg/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
@@ -25,8 +32,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32/firmware.elf",
-            "projectEnvName": "featheresp32",
+            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32rev/firmware.elf",
+            "projectEnvName": "native",
             "toolchainBinDir": "C:/Users/ahigg/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
@@ -34,8 +41,8 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32/firmware.elf",
-            "projectEnvName": "featheresp32",
+            "executable": "C:/Users/ahigg/OneDrive/Documents/GitHub/openscoot/.pio/build/featheresp32rev/firmware.elf",
+            "projectEnvName": "native",
             "toolchainBinDir": "C:/Users/ahigg/.platformio/packages/toolchain-xtensa-esp32s2/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"

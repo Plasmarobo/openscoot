@@ -2,11 +2,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <trace.h>
 
 #include <cstring>
-
-template <typename T, size_t N>
-class RingBuffer;
 
 template <typename T, size_t N>
 class RingBuffer {
@@ -38,9 +36,11 @@ RingBuffer<T, N>::RingBuffer() {
 template <typename T, size_t N>
 bool RingBuffer<T, N>::push(T* t) {
     if (full()) {
+        TRACE("Ringbuffer full\n");
         return false;
     }
     if (NULL == t) {
+        TRACE("NULL object\n");
         return false;
     }
     memcpy((uint8_t*)&buffer[head], (uint8_t*)t, sizeof(T));

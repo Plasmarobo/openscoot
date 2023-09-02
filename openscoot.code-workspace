@@ -1,12 +1,7 @@
 {
-	"folders": [
-		{
-			"path": "../../../GitHub/openscoot"
-		},
-		{
-			"name": "OpenScoot",
-			"path": "."
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": "../../../GitHub/openscoot"
+        }
+    ]
 }

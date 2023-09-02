@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
+#include <test_main.h>
 
-#include "ringbuffer.hpp"
+#include <ringbuffer.hpp>
 
 namespace {
 const size_t N_ELEMENTS = 8;
@@ -48,7 +49,7 @@ TEST(RingbufferTest, Full) {
     EXPECT_EQ(e, 0);
 }
 
-TEST(RingBufferTest, Empty) {
+TEST(RingbufferTest, Empty) {
     RingBuffer<int32_t, N_ELEMENTS> buffer;
     int32_t test_elem = 32;
     EXPECT_TRUE(buffer.empty());
@@ -62,5 +63,3 @@ TEST(RingBufferTest, Empty) {
     EXPECT_EQ(check, test_elem);
     EXPECT_TRUE(buffer.empty());
 }
-
-#include "../src/test_main.cpp"

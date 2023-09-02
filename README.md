@@ -77,3 +77,9 @@ Addr
 
 # Analog Throttle
 A0 - GPIO10 - 
+
+# Digital keys
+Configure Pins
+KeyA - (A1)
+KeyB - (A2)
+Neopixel - (A3)
