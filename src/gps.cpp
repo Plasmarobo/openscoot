@@ -19,6 +19,7 @@ uint8_t task_handle;
 void gps_task_cb(void* ctx);
 
 void gps_init(Scheduler* sched) {
+    ENTER;
     task_handle = 0;
     GPS.begin(9600);
     GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
@@ -28,6 +29,7 @@ void gps_init(Scheduler* sched) {
                                            gps_task_cb);
         sched->start_task(task_handle);
     }
+    EXIT;
 }
 
 GPSData get_gps_data() { return data_buffer; }

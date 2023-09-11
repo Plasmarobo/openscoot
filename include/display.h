@@ -14,6 +14,7 @@ struct DisplayData {
     uint8_t radio_sig;
     uint8_t wifi_sig;
     uint8_t nfc_status;
+    int16_t volts;
     bool locked;
     char status_line[STATUS_LINE_MAX];
 };
@@ -31,7 +32,7 @@ void update_display_cb(void);
 // Fixed point kph
 void display_set_kph(uint16_t kph);
 void display_set_kph_limit(uint16_t limit);
-void display_set_battery_charge(uint8_t percent_charge);
+void display_set_battery_charge(uint8_t percent_charge, int16_t volts);
 void display_set_radio_signal(uint8_t signal);
 void display_set_wifi_signal(uint8_t signal);
 void display_set_nfc_status(uint8_t status);

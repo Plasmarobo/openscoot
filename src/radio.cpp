@@ -69,7 +69,6 @@ void delayed_init_cb(void* ctx) {
 }
 
 void radio_update_cb(void* ctx) {
-    ENTER;
     // Priority for RX
     if (radio.available()) {
         // Process RX packets
@@ -91,11 +90,11 @@ void radio_update_cb(void* ctx) {
             }
         }
     }
-    EXIT;
 }
 }  // namespace
 
 void radio_init(Scheduler* sched) {
+    ENTER;
     task_handle = 0;
     digitalWrite(RFM95_RST, LOW);
     driver_state = RADIO_UNINITIALIZED;
@@ -104,6 +103,7 @@ void radio_init(Scheduler* sched) {
             SCHED_MILLISECONDS(RADIO_UPDATE_PERIOD_MS), radio_update_cb);
         call_deferred(SCHED_MILLISECONDS(INIT_DELAY_MS), delayed_init_cb);
     }
+    EXIT;
 }
 
 bool radio_message_available() { return !rx_ring.empty(); }

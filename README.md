@@ -60,6 +60,7 @@ Uses `SPI`
 Uses Pin D5 - CS
 Uses Pin D6 - INT
 
+
 ## LORA Featherwing
 Uses `SPI`
 Configure Pin C (D9)- CS

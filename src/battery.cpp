@@ -26,6 +26,7 @@ volatile int16_t battery_voltage;
 void update_battery_cb(void* ctx) {
     ENTER;
     VESCState state = motor_driver_get_state(VESC_FRONT_ADDRESS);
+    TRACEF("Raw VIN: %d\n", state.volts_in);
     battery_voltage = state.volts_in / 10;
     if (battery_voltage < PACK_SAFETY_VOLTAGE) {
         report_error("Battery requires charge");
@@ -36,16 +37,18 @@ void update_battery_cb(void* ctx) {
     // AH used is in 1/10000 of an amp
     int32_t percent =
         (((PACK_AH * 10000) - state.ah_used) * 100) / (PACK_AH * 10000);
-    display_set_battery_charge(percent);
+    display_set_battery_charge(percent, state.volts_in);
     EXIT;
 }
 }  // namespace
 
 void battery_init(Scheduler* sched) {
+    ENTER;
     battery_voltage = PACK_INVALID_VOLTAGE;
     if (NULL != sched) {
         sched->register_task(SCHED_MILLISECONDS(BATTERY_UPDATE_PERIOD_MS),
                              update_battery_cb, TASK_FLAG_ENABLED);
     }
+    EXIT;
 }
 void set_battery_voltage(int16_t voltage) { battery_voltage = voltage; }

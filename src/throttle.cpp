@@ -20,8 +20,8 @@
 #include "scheduler.h"
 #include "trace.h"
 
-#define THROTTLE_UPDATE_RATE_MS (10)
-#define THROTTLE_DEFAULT_LIMIT (128)
+#define THROTTLE_UPDATE_RATE_MS (250)
+#define THROTTLE_DEFAULT_LIMIT (255)
 
 #define THROTTLE_PIN (A0)
 // Hall effect IO at 3.3v
@@ -30,11 +30,15 @@
 #define ADC_MIN (0)
 #define ADC_MAX (4095)
 
-#define THROTTLE_SAMPLE_WINDOW (5)
+#define THROTTLE_LOWPASS_LENGTH (4)
 #define THROTTLE_SMOOTHING (16)
 #define MAX_THROTTLE_VALUE (3110)
-#define MIN_THROTTLE_VALUE (985)
-
+#define MIN_THROTTLE_VALUE (970)
+// Clamp throttle to zero below this value
+#define THROTTLE_LOWER_DEADBAND (32)
+#define THROTTLE_UPPER_DEADBAND (250)
+#define THROTTLE_EFFECTIVE_MAXIMUM \
+    (THROTTLE_UPPER_DEADBAND - THROTTLE_LOWER_DEADBAND)
 // Based on 10' diameter wheel, aprox 40kph
 #define RPM_MAX (836)
 #define RPM_MIN (0)
@@ -43,51 +47,52 @@
 namespace {
 void update_throttle_cb(void* ctx);
 ThrottleData throttle_data;
-int16_t throttle_samples[THROTTLE_SAMPLE_WINDOW];
-uint8_t sample_idx;
+uint32_t throttle_lowpass;
 uint8_t throttle_task;
 
 void update_throttle_cb(void* ctx) {
-    throttle_samples[sample_idx] = analogRead(THROTTLE_PIN);
-    sample_idx = (sample_idx + 1) % THROTTLE_SAMPLE_WINDOW;
-    int16_t desired_throttle = 0;
-    for (uint8_t idx = 0; idx < THROTTLE_SAMPLE_WINDOW; ++idx) {
-        desired_throttle += throttle_samples[idx];
+    // Run a low-pass on throttle data
+    uint32_t throttle_sample = analogRead(THROTTLE_PIN);
+    throttle_lowpass =
+        (throttle_lowpass << THROTTLE_LOWPASS_LENGTH) - throttle_lowpass;
+    throttle_lowpass += throttle_sample;
+    throttle_lowpass >>= THROTTLE_LOWPASS_LENGTH;
+    // Project into 0-255 fixed point
+    throttle_data.current = ((255 * (throttle_lowpass - MIN_THROTTLE_VALUE)) /
+                             (MAX_THROTTLE_VALUE - MIN_THROTTLE_VALUE)) -
+                            THROTTLE_LOWER_DEADBAND;
+
+    display_printf("T: %04d %04d", throttle_lowpass, throttle_data.current);
+    if (throttle_data.current < 0) {
+        throttle_data.current = 0;
     }
-    desired_throttle /= THROTTLE_SAMPLE_WINDOW;
-    uint8_t projected_throttle =
-        (255 * (desired_throttle - MIN_THROTTLE_VALUE)) /
-        (MAX_THROTTLE_VALUE - MIN_THROTTLE_VALUE);
-    int16_t delta = projected_throttle - throttle_data.current;
-    if (delta > THROTTLE_SMOOTHING) {
-        delta = THROTTLE_SMOOTHING;
-    } else if (delta < -THROTTLE_SMOOTHING) {
-        delta = -THROTTLE_SMOOTHING;
+    if (throttle_data.current >
+        (THROTTLE_UPPER_DEADBAND - THROTTLE_LOWER_DEADBAND)) {
+        throttle_data.current = THROTTLE_UPPER_DEADBAND;
     }
-    if (delta != 0) {
-        throttle_data.current += delta;
-        if (throttle_data.current > throttle_data.limit) {
-            throttle_data.current = throttle_data.limit;
-        }
-        // Map throttle to motor command
-        int32_t cycle = (throttle_data.current * DUTY_CYCLE_MAX) / 255;
-        display_set_kph(KPH_RESOLUTION * throttle_data.current);
-        display_printf("DC: %06d", cycle);
-        motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, cycle);
-        motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, cycle);
+    if (throttle_data.current > throttle_data.limit) {
+        throttle_data.current = throttle_data.limit;
     }
+
+    // Map throttle to motor command
+    int32_t cycle =
+        (throttle_data.current * DUTY_CYCLE_MAX) / THROTTLE_EFFECTIVE_MAXIMUM;
+    display_set_kph(KPH_RESOLUTION * throttle_data.current);
+    motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, cycle);
+    motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, cycle);
 }
 }  // namespace
 
 void throttle_init(Scheduler* sched) {
+    ENTER;
     if (NULL != sched) {
         throttle_task =
             sched->register_task(SCHED_MILLISECONDS(THROTTLE_UPDATE_RATE_MS),
                                  update_throttle_cb, TASK_FLAG_ENABLED);
     }
-    memset(&throttle_samples, 0, sizeof(int16_t) * THROTTLE_SAMPLE_WINDOW);
-    sample_idx = 0;
+    throttle_lowpass = 0;
     throttle_data.limit = THROTTLE_DEFAULT_LIMIT;
+    EXIT;
 }
 
 void throttle_enable(bool enable) { throttle_data.enabled = enable; }

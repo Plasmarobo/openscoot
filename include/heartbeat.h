@@ -6,3 +6,5 @@
 #define HEARTBEAT_DURATION_MS (100)
 
 void heartbeat_init();
+void heartbeat_once();
+void set_heart(bool on);

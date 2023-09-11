@@ -14,7 +14,7 @@ uint32_t fault_flags;
 // Reports error, may allow limited function
 void report_error(const char* message) {
     // TODO: write to SRAM
-    TRACEF("Error: %s", message);
+    TRACEF("Error: %s\n", message);
     display_printf("Err: %s", message);
 }
 // Reports error, and disables system until external intervention

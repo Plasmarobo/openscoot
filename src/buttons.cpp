@@ -52,6 +52,7 @@ void button_update_cb(void* ctx) {
 }  // namespace
 
 void buttons_init() {
+    ENTER;
     pending_call = false;
     for (uint8_t i = KEY_A; i < KEY_MAX; ++i) {
         pinMode(key_pin_map[i], INPUT_PULLUP);
@@ -60,6 +61,7 @@ void buttons_init() {
     for (uint8_t i = 0; i < KEY_MAX; ++i) {
         callbacks[i] = NULL;
     }
+    EXIT;
 }
 
 uint8_t get_button_state() { return buttons_state; }

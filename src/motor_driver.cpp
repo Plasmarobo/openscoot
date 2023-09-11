@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "errors.h"
+#include "heartbeat.h"
 #include "scheduler.h"
 #include "trace.h"
 
@@ -17,7 +18,7 @@
 #define CAN_BAUD (1000000)
 #define CAN_DATA_SIZE (8)
 // Minimum is 2
-#define RX_BUFFER_SIZE (32)
+#define RX_BUFFER_SIZE (4)
 // Minimum is 2
 #define TX_BUFFER_SIZE (8)
 
@@ -81,16 +82,13 @@ struct STATUS6 {
     int16_t ppm;
 };
 
-void update_can_cb(void* ctx);
 void parse_can_message(CANMessage* msg);
 
 Adafruit_MCP2515 mcp(CS_PIN);
-RingBuffer<CANMessage, RX_BUFFER_SIZE> rx_buffer;
-uint16_t incoming_packet_length;
+volatile uint16_t incoming_packet_length;
 uint16_t requested_length;
 RingBuffer<CANMessage, TX_BUFFER_SIZE> tx_buffer;
 uint32_t can_flags;
-uint8_t task_handle;
 VESCState motor_state[VESC_COUNT];
 
 void reverse_bytes(uint8_t* bytes, size_t size) {
@@ -108,18 +106,16 @@ void reverse_bytes(uint8_t* bytes, size_t size) {
 
 void can_tx(int id, uint8_t* buffer, size_t length) {
     // Up to 8 bytes
-    mcp.beginExtendedPacket(id);
-    mcp.write(buffer, length);
-    mcp.endPacket();
+    if (mcp.beginExtendedPacket(id)) {
+        mcp.write(buffer, length);
+        mcp.endPacket();
+    }
 }
 
-void handle_can_rx_cb(int packet_size) {
-    if (mcp.packetRtr()) {
-        requested_length = mcp.packetDlc();
-    } else {
-        if (rx_buffer.full()) {
-            // Buffer is full
-            report_error("CAN RX OVRFLW");
+void handle_can_rx_cb(void* ctx) {
+    while (incoming_packet_length = mcp.parsePacket()) {
+        if (mcp.packetRtr()) {
+            requested_length = mcp.packetDlc();
         } else {
             CANMessage msg;
             long id = mcp.packetId();
@@ -129,38 +125,28 @@ void handle_can_rx_cb(int packet_size) {
             if (msg.length > 0) {
                 mcp.readBytes(msg.data, msg.length);
             }
-            rx_buffer.push(&msg);
+            parse_can_message(&msg);
         }
     }
 }
 
-void update_can_cb(void* ctx) {
-    CANMessage msg;
-    if (rx_buffer.pop(&msg)) {
-        parse_can_message(&msg);
-    }
-    if (!tx_buffer.empty()) {
-        tx_buffer.pop(&msg);
-        long id = (long)(msg.vesc_id | (msg.cmd_id << 8));
-        TRACEF("Sending on CAN %02x %02x %04x %08x \n", msg.vesc_id, msg.cmd_id,
-               msg.length, ((uint64_t*)(msg.data)));
-        can_tx(id, msg.data, msg.length);
-    }
+void handle_can_rx_isr() {
+    heartbeat_once();
+    call_deferred(SCHED_IMMEDIATE, handle_can_rx_cb);
 }
 
 bool push_message(CANMessage* source) {
     if (source != NULL) {
-        if (tx_buffer.full()) {
-            report_error("CAN TX OVRFLW\n");
-        } else {
-            return tx_buffer.push(source);
-        }
+        long id = (long)(source->vesc_id | (source->cmd_id << 8));
+        // can_tx(id, source->data, source->length);
+        return true;
     }
     return false;
 }
 
 void parse_can_message(CANMessage* msg) {
     VESCState* state = NULL;
+    TRACEF("CAN ID: %d\n", msg->vesc_id);
     if (msg->vesc_id == VESC_FRONT_ADDRESS) {
         state = &motor_state[VESC_FRONT_INDEX];
     } else if (msg->vesc_id == VESC_REAR_ADDRESS) {
@@ -168,6 +154,7 @@ void parse_can_message(CANMessage* msg) {
     } else {
         return;
     }
+    TRACEF("CAN CMD: %d\n", msg->cmd_id);
     switch (msg->cmd_id) {
         case STATUS1_ID: {
             STATUS1* data = (STATUS1*)(&msg->data[0]);
@@ -210,7 +197,9 @@ void parse_can_message(CANMessage* msg) {
             state->pid_pos = ((int32_t)data->pid_pos);  // 50 = 1deg
         } break;
         case STATUS5_ID: {
+            TRACE("Status 5 data: ");
             STATUS5* data = (STATUS5*)(&msg->data[0]);
+            TRACEF("%16x\n", *((uint64_t*)data));
             TO_LITTLE_ENDIAN(data->tachometer);
             state->tachometer = ((int32_t)data->tachometer);  // 6 = 1EREV
             TO_LITTLE_ENDIAN(data->volts_in);
@@ -249,15 +238,14 @@ CANMessage build_can_message(uint8_t vesc, uint8_t command, uint8_t* value,
 }  // namespace
 
 void motor_driver_init(Scheduler* sched) {
-    if (!mcp.begin(CAN_BAUD)) {
+    ENTER;
+    int status = mcp.begin(CAN_BAUD);
+    if (!status) {
         report_error("CAN init failure");
     }
-
-    mcp.onReceive(INT_PIN, handle_can_rx_cb);
-    if (NULL != sched) {
-        task_handle = sched->register_task(SCHED_MILLISECONDS(CAN_UPDATE_MS),
-                                           update_can_cb, TASK_FLAG_ENABLED);
-    }
+    pinMode(INT_PIN, INPUT_PULLUP);
+    attachInterrupt(INT_PIN, handle_can_rx_isr, FALLING);
+    EXIT;
 }
 
 void motor_driver_set_rpm(uint8_t vesc, int32_t rpm) {

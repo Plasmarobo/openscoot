@@ -34,6 +34,7 @@
 #define CYAN (0x07FF)
 #define MAGENTA (0xF81F)
 #define YELLOW (0xFFE0)
+#define ORANGE (0xFD20)
 #define WHITE (0xFFFF)
 
 #define LOW_SPEED_COLOR (0x645F)
@@ -65,10 +66,52 @@ Adafruit_NeoPixel cpu_pixel(N_CPU_PIXELS, CPU_NEOPIXEL_PIN,
 Adafruit_NeoPixel key_pixels(N_KEY_PIXELS, KEY_NEOPIXEL_PIN,
                              NEO_GRB + NEO_KHZ800);
 
-void draw_battery_status(uint8_t percent) {
+void draw_battery_status(uint8_t percent, int16_t voltage) {
+    const size_t n_display = 5;
+    const uint32_t buffer_len = 16;
+    char buf[buffer_len];
     framebuffer.drawRGBBitmap(ICON_PAD, ICON_PAD,
                               icon_battery_level_100_charged, ICON_WIDTH,
                               ICON_HEIGHT);
+    snprintf(buf, buffer_len, "%03u% (%02d.%01d)", percent, voltage / 10,
+             voltage % 10);
+    const int16_t x = ICON_PAD + ICON_WIDTH, y = ICON_PAD;
+    int16_t w = (GRID_WIDTH * percent) / 100;
+    uint8_t bin = percent / 10;
+    uint16_t color = WHITE;
+    switch (color) {
+        case 0:
+        case 1:
+            color = RED;
+            break;
+        case 2:
+        case 3:
+        case 4:
+            color = ORANGE;
+            break;
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+            color = YELLOW;
+            break;
+        case 9:
+        case 10:
+            color = GREEN;
+            break;
+        default:
+            color = MAGENTA;
+            break;
+    }
+    framebuffer.fillRect(x, y, w, GRID_HEIGHT, color);
+    const size_t TEXT_SIZE = 2;
+    framebuffer.setTextColor(WHITE);
+    framebuffer.setTextSize(TEXT_SIZE);
+    // 3 and 4 here are the base text size / 2
+    int16_t text_x = x + ICON_PAD;
+    int16_t text_y = y + ICON_PAD;
+    framebuffer.setCursor(text_x, text_y);
+    framebuffer.print(buf);
 }
 
 void draw_radio_signal(uint8_t sig) {
@@ -139,7 +182,7 @@ void update_display_cb(void* ctx) {
             (DISPLAY_H / 2) - (BIG_ICON_HEIGHT / 2) + BIG_ICON_PAD,
             bigicon_lock, BIG_ICON_WIDTH, BIG_ICON_HEIGHT);
     } else {
-        draw_battery_status(display_data.charge);
+        draw_battery_status(display_data.charge, display_data.volts);
         draw_radio_signal(display_data.radio_sig);
         draw_nfc_icon(display_data.nfc_status);
         draw_wifi_icon(display_data.wifi_sig);
@@ -186,9 +229,9 @@ void display_init(Scheduler* sched) {
                     .locked = true};
     memset(display_data.status_line, '\0', STATUS_LINE_MAX);
 
-    cpu_color[0] = {.r = 128, .g = 0, .b = 0};
-    key_colors[0] = {.r = 0, .g = 128, .b = 0};
-    key_colors[1] = {.r = 0, .g = 0, .b = 128};
+    cpu_color[0] = {.r = 0, .g = 32, .b = 0};
+    key_colors[0] = {.r = 16, .g = 0, .b = 0};
+    key_colors[1] = {.r = 16, .g = 0, .b = 0};
     cpu_pixel.begin();
     key_pixels.begin();
     cpu_pixel.show();
@@ -204,7 +247,7 @@ void display_init(Scheduler* sched) {
 
 void display_set_kph(uint16_t kph) { display_data.kph = kph; }
 void display_set_kph_limit(uint16_t limit) { display_data.limit = limit; }
-void display_set_battery_charge(uint8_t percent_charge) {
+void display_set_battery_charge(uint8_t percent_charge, int16_t volts) {
     display_data.charge = percent_charge;
 }
 void display_set_radio_signal(uint8_t signal) {
@@ -238,7 +281,7 @@ void update_display_cb(void) {}
 // Fixed point kph
 void display_set_kph(uint16_t kph) {}
 void display_set_kph_limit(uint16_t limit) {}
-void display_set_battery_charge(uint8_t percent_charge) {}
+void display_set_battery_charge(uint8_t percent_charge, int16_t volts) {}
 void display_set_radio_signal(uint8_t signal) {}
 void display_set_wifi_signal(uint8_t signal) {}
 void display_set_nfc_status(uint8_t status) {}

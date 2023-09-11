@@ -46,9 +46,11 @@ void nfc_isr() {
 }  // namespace
 
 void nfc_init() {
+    ENTER;
     // Set an interrupt on the GPO pin
     pinMode(NFC_INT_PIN, INPUT_PULLUP);
     attachInterrupt(NFC_INT_PIN, nfc_isr, FALLING);
+    EXIT;
 }
 
 NFCMessageBuffer get_nfc_data() { return msg_buffer; }
