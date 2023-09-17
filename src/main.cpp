@@ -15,6 +15,7 @@
 #include "pwr.h"
 #include "reset_reason.h"
 #include "scheduler.h"
+#include "speed.h"
 #include "telemetry.h"
 #include "throttle.h"
 #include "wifi_manager.h"
@@ -37,8 +38,9 @@ void toggle_lockscreen() {
     locked = !locked;
     display_set_locked(locked);
     if (locked) {
-        throttle_set_limit(0);
+        throttle_enable(false);
     } else {
+        throttle_enable(true);
         throttle_set_limit(CONFIG_THROTTLE_LIMIT);
     }
 }
@@ -67,8 +69,9 @@ void core1_init(void* params) {
     buttons_init(&core1_sched);
     buttons_set_callback(KEY_A, dispatch_heartbeat);
     buttons_set_callback(KEY_B, toggle_lockscreen);
-    //    wifi_init(&core1_sched);
-    //    telemetry_init(&core1_sched);
+    speed_init(&core1_sched);
+    wifi_init(&core1_sched);
+    telemetry_init(&core1_sched);
     EXIT;
 }
 

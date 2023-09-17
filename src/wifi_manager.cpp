@@ -5,6 +5,8 @@
 
 #include <ringbuffer.hpp>
 
+#include "display.h"
+
 #define SSID ("HomeAwayFromHome2.4")
 #define PSK ("internetplease")
 #define WIFI_TASK_PERIOD_MS (15000)

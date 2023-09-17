@@ -6,9 +6,10 @@
 #define TELEMETRY_MAX_LENGTH (64)
 
 struct TeleMessage {
-    char* topic;
+    const char* topic;
     char data[TELEMETRY_MAX_LENGTH + 1];
 };
 
 void telemetry_init(Scheduler* sched);
 bool telemetry_send_message(TeleMessage& msg);
+bool telemetry_send_message(const char* topic, const char* fmt, ...);

@@ -1,3 +1,3 @@
 #pragma once
 
-#define CONFIG_THROTTLE_LIMIT (64)
+#define CONFIG_THROTTLE_LIMIT (255)

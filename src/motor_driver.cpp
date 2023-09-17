@@ -102,7 +102,7 @@ void reverse_bytes(uint8_t* bytes, size_t size) {
     uint8_t carry;
     if (size > 1) {
         // Reverse byte order
-        for (uint8_t idx = 0; idx < size; ++idx) {
+        for (uint8_t idx = 0; idx < size / 2; ++idx) {
             uint8_t rev_idx = (size - idx) - 1;
             carry = bytes[idx];
             bytes[idx] = bytes[rev_idx];
@@ -209,11 +209,11 @@ void parse_can_message(CANMessage* msg) {
         case STATUS1_ID: {
             STATUS1* data = (STATUS1*)(&msg->data[0]);
             TO_LITTLE_ENDIAN(data->erpm);
-            state->erpm = data->erpm;  // 1 = 1rpm
+            state->erpm = (int32_t)data->erpm;
             TO_LITTLE_ENDIAN(data->current);
-            state->drive_current = ((int32_t)data->current);  // 10 = 1A
+            state->drive_current = (int32_t)data->current;
             TO_LITTLE_ENDIAN(data->duty_cycle);
-            state->duty_cycle = ((int32_t)data->duty_cycle);  // 1000 = 0.001%
+            state->duty_cycle = (int32_t)data->duty_cycle;
         } break;
         case STATUS2_ID: {
             STATUS2* data = (STATUS2*)(&msg->data[0]);

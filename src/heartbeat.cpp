@@ -3,6 +3,7 @@
 #include <framework.h>
 
 #include "scheduler.h"
+#include "telemetry.h"
 #include "trace.h"
 
 #define HEARTBEAT_LED_PIN (13)
@@ -29,6 +30,7 @@ void heartbeat_cb(void* ctx) {
         case 1:
             heartbeat_tick = 0;
             set_heart(true);
+            telemetry_send_message("heartbeat", "VEHICLE0");
             call_deferred(sched_ref, SCHED_MILLISECONDS(HEARTBEAT_DURATION_MS),
                           heartbeat_cb, __PRETTY_FUNCTION__);
             break;

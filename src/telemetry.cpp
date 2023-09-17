@@ -8,6 +8,7 @@
 
 #include <ringbuffer.hpp>
 
+#include "display.h"
 #include "errors.h"
 #include "wifi_manager.h"
 
@@ -22,19 +23,17 @@ PubSubClient mqtt(wifiClient);
 }  // namespace
 
 void telemetry_cb(void* ctx) {
-    if (wifi_connected()) {
-        bool connected = mqtt.connected();
-        if (!connected) {
-            if (!(connected = mqtt.connect("openscooter"))) {
-                TeleMessage msg;
-                while (!tx_queue.empty()) {
-                    tx_queue.pop(&msg);
-                    mqtt.publish(msg.topic, msg.data);
-                }
-            } else {
-                report_error("Telemetry not connected");
+    bool connected = mqtt.connected();
+    if (connected || mqtt.connect("opnsct")) {
+        TeleMessage msg;
+        while (!tx_queue.empty()) {
+            tx_queue.pop(&msg);
+            if (!mqtt.publish(msg.topic, msg.data)) {
+                report_error("Telem failure");
             }
         }
+    } else {
+        report_error("Telem disconnect");
     }
 }
 
@@ -47,4 +46,14 @@ void telemetry_init(Scheduler* sched) {
     }
 }
 
-bool telemetry_send_message(TeleMessage& msg) { tx_queue.push(&msg); }
+bool telemetry_send_message(TeleMessage& msg) { return tx_queue.push(&msg); }
+bool telemetry_send_message(const char* topic, const char* fmt, ...) {
+    TeleMessage msg;
+    msg.topic = topic;
+    va_list argptr;
+    va_start(argptr, fmt);
+    vsnprintf(msg.data, TELEMETRY_MAX_LENGTH, fmt, argptr);
+    va_end(argptr);
+    msg.data[TELEMETRY_MAX_LENGTH] = '\0';
+    return telemetry_send_message(msg);
+}

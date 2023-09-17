@@ -75,7 +75,6 @@ void update_throttle_cb(void* ctx) {
         // Map throttle to motor command
         int32_t cycle = (throttle_data.current * DUTY_CYCLE_MAX) /
                         THROTTLE_EFFECTIVE_MAXIMUM;
-        display_set_kph(KPH_RESOLUTION * throttle_data.current);
         motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, cycle);
         motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, cycle);
     }
@@ -103,10 +102,7 @@ void throttle_enable(bool enable) {
     }
 }
 
-void throttle_set_limit(int16_t limit) {
-    throttle_data.limit = limit;
-    display_set_kph_limit(limit);
-}
+void throttle_set_limit(int16_t limit) { throttle_data.limit = limit; }
 #else
 void throttle_init(Scheduler* sched) {}
 void throttle_enable(bool enable) {}
