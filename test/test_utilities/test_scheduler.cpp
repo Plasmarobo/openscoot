@@ -325,7 +325,7 @@ TEST(Scheduler, Global) {
 
     tick_c_cnt = 0;
     sched->start_scheduler();
-    call_deferred(SCHED_MILLISECONDS(100), tick_c);
+    call_deferred(SCHED_MILLISECONDS(100), tick_c, __PRETTY_FUNCTION__);
     uint32_t cycles = 200;
     while (cycles > 0) {
         sched->run();
@@ -340,11 +340,11 @@ int ticks = 0;
 int tocks = 0;
 void tick(void* ctx) {
     ticks += 1;
-    call_deferred(SCHED_MILLISECONDS(1), tick);
+    call_deferred(SCHED_MILLISECONDS(1), tick, __PRETTY_FUNCTION__);
 }
 void tock(void* ctx) {
     tocks += 1;
-    call_deferred(SCHED_MILLISECONDS(5), tock);
+    call_deferred(SCHED_MILLISECONDS(5), tock, __PRETTY_FUNCTION__);
 }
 }  // namespace
 

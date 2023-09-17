@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include "scheduler.h"
+
 #define NFC_MESSAGE_SIZE (40)
 #define NFC_DATA_SIZE (NFC_MESSAGE_SIZE - sizeof(NFCMessageHeader))
 
@@ -18,6 +20,6 @@ typedef struct __attribute__((packed)) {
     char data[NFC_DATA_SIZE];
 } NFCMessageBuffer;
 
-void nfc_init();
+void nfc_init(Scheduler* sched);
 NFCMessageBuffer get_nfc_data();
 void set_nfc_data(NFCMessageBuffer data);

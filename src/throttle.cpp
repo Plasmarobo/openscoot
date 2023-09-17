@@ -20,17 +20,18 @@
 #include "scheduler.h"
 #include "trace.h"
 
-#define THROTTLE_UPDATE_RATE_MS (250)
+#define THROTTLE_UPDATE_RATE_MS (100)
 #define THROTTLE_DEFAULT_LIMIT (255)
 
 #define THROTTLE_PIN (A0)
+
 // Hall effect IO at 3.3v
 #define THROTTLE_VMAX (2.585)
 #define THROTTLE_VOFF (0.85)
 #define ADC_MIN (0)
 #define ADC_MAX (4095)
 
-#define THROTTLE_LOWPASS_LENGTH (4)
+#define THROTTLE_LOWPASS_LENGTH (2)
 #define THROTTLE_SMOOTHING (16)
 #define MAX_THROTTLE_VALUE (3110)
 #define MIN_THROTTLE_VALUE (970)
@@ -61,8 +62,6 @@ void update_throttle_cb(void* ctx) {
     throttle_data.current = ((255 * (throttle_lowpass - MIN_THROTTLE_VALUE)) /
                              (MAX_THROTTLE_VALUE - MIN_THROTTLE_VALUE)) -
                             THROTTLE_LOWER_DEADBAND;
-
-    display_printf("T: %04d %04d", throttle_lowpass, throttle_data.current);
     if (throttle_data.current < 0) {
         throttle_data.current = 0;
     }
@@ -70,32 +69,39 @@ void update_throttle_cb(void* ctx) {
         (THROTTLE_UPPER_DEADBAND - THROTTLE_LOWER_DEADBAND)) {
         throttle_data.current = THROTTLE_UPPER_DEADBAND;
     }
-    if (throttle_data.current > throttle_data.limit) {
-        throttle_data.current = throttle_data.limit;
+    // Scale throttle to limit
+    throttle_data.current = (throttle_data.current * throttle_data.limit) >> 8;
+    if (throttle_data.enabled) {
+        // Map throttle to motor command
+        int32_t cycle = (throttle_data.current * DUTY_CYCLE_MAX) /
+                        THROTTLE_EFFECTIVE_MAXIMUM;
+        display_set_kph(KPH_RESOLUTION * throttle_data.current);
+        motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, cycle);
+        motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, cycle);
     }
-
-    // Map throttle to motor command
-    int32_t cycle =
-        (throttle_data.current * DUTY_CYCLE_MAX) / THROTTLE_EFFECTIVE_MAXIMUM;
-    display_set_kph(KPH_RESOLUTION * throttle_data.current);
-    motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, cycle);
-    motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, cycle);
 }
 }  // namespace
 
 void throttle_init(Scheduler* sched) {
     ENTER;
+    pinMode(THROTTLE_PIN, INPUT);
     if (NULL != sched) {
-        throttle_task =
-            sched->register_task(SCHED_MILLISECONDS(THROTTLE_UPDATE_RATE_MS),
-                                 update_throttle_cb, TASK_FLAG_ENABLED);
+        throttle_task = sched->register_task(
+            "throttle", SCHED_MILLISECONDS(THROTTLE_UPDATE_RATE_MS),
+            update_throttle_cb, TASK_FLAG_ENABLED);
     }
     throttle_lowpass = 0;
     throttle_data.limit = THROTTLE_DEFAULT_LIMIT;
     EXIT;
 }
 
-void throttle_enable(bool enable) { throttle_data.enabled = enable; }
+void throttle_enable(bool enable) {
+    throttle_data.enabled = enable;
+    if (!enable) {
+        throttle_data.current = 0;
+        throttle_lowpass = 0;
+    }
+}
 
 void throttle_set_limit(int16_t limit) {
     throttle_data.limit = limit;

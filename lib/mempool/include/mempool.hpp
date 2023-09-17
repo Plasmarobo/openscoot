@@ -12,33 +12,33 @@ constexpr bool is_powerof2(int v) { return v && ((v & (v - 1)) == 0); }
 template <typename T, size_t N>
 class MemPool {
    private:
-    static_assert(is_powerof2(N), "Template parameter should be a power of 2");
-    static_assert(N < 64, "Template parameter should be less than 64");
+    static_assert(N > 0, "Empty pool not allowed");
+    static_assert(N % 8 == 0, "Template parameter should be a multiple of 8");
     T pool[N];
-    uint64_t freelist;
-
-    uint8_t get_free_idx();
+    // Fast ceiling here to calc number of 8 bit blocks required in freelist
+    uint8_t freelist[N + 7 / 8];
 
    public:
-    MemPool() { freelist = 0xFFFFFFFFFFFFFFFF; }
+    MemPool() {
+        for (uint32_t i = 0; i < N; ++i) {
+            freelist[i] = 0xFF;
+        }
+    }
 
     T* alloc() {
         // Scan for a free block
-        if (freelist == 0) {
-            return NULL;
-        }
-
         uint32_t idx = 0;
-        for (uint32_t i = 0; i < N; ++i) {
-            uint64_t mask = (1 << i);
-            if (freelist & mask) {
-                idx = i;
-                break;
+        for (uint32_t block = 0; block < N; ++block) {
+            for (uint8_t bit = 0; bit < 8; ++bit) {
+                if (freelist[block] & (1 << bit)) {
+                    idx = (block * 8) + bit;
+                    freelist[block] &= ~(1 << bit);
+                    break;
+                }
             }
         }
 
         T* ptr = &pool[idx];
-        freelist &= ~(1 << idx);
         return ptr;
     }
 
@@ -47,10 +47,13 @@ class MemPool {
         uintptr_t root = (uintptr_t)&pool[0];
         if (item >= root) {
             uintptr_t idx = (item - root) / sizeof(T);
-            // Mark the freelist
-            if (idx < N) {
-                freelist |= (1 << idx);
+            if (idx >= N) {
+                return;
             }
+            // Mark the freelist
+            uint32_t block = idx / 8;
+            uint8_t bit = idx % 8;
+            freelist[block] |= (1 << bit);
         }
     }
 };

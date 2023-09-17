@@ -1,9 +1,12 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#define _DEBUG
+// #define ENABLE_TRACE
 
-#ifdef _DEBUG
+#ifdef ENABLE_TRACE
+#ifdef _MSC_VER
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif
 bool _trace(const char* fmt, ...);
 #define TRACE(str) _trace(str)
 #define TRACEF(fmt, ...) _trace(fmt, __VA_ARGS__)

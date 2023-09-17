@@ -238,9 +238,9 @@ void display_init(Scheduler* sched) {
     key_pixels.show();
 
     if (NULL != sched) {
-        task_handle =
-            sched->register_task(SCHED_MILLISECONDS(DISPLAY_UPDATE_MS),
-                                 update_display_cb, TASK_FLAG_ENABLED);
+        task_handle = sched->register_task(
+            "display", SCHED_MILLISECONDS(DISPLAY_UPDATE_MS), update_display_cb,
+            TASK_FLAG_ENABLED);
     }
     EXIT;
 }

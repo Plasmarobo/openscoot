@@ -1,0 +1,1 @@
+C:/Users/ahigg/.platformio/packages/tool-openocd-esp32/bin/openocd.exe -f interface/esp_usb_jtag.cfg -f board/esp32s3-builtin.cfg -c "program_esp .pio/build/featheresp32tft_debug/firmware.bin 0x10000 verify"

@@ -20,6 +20,7 @@
 namespace {
 void nfc_update_cb(void* ctx);
 
+Scheduler* sched_ref;
 ST25DV st32dv(12, -1, &DEV_I2C);
 char b64_workspace[NFC_MESSAGE_SIZE + 1];
 NFCMessageBuffer msg_buffer;
@@ -41,12 +42,14 @@ void nfc_update_cb(void* ctx) {
 void nfc_isr() {
     // ISR for RF activity on the NFC
     // Give it a delay, then read
-    call_deferred(SCHED_MILLISECONDS(NFC_READ_DELAY_MS), nfc_update_cb);
+    call_deferred(sched_ref, SCHED_MILLISECONDS(NFC_READ_DELAY_MS),
+                  nfc_update_cb, __PRETTY_FUNCTION__);
 }
 }  // namespace
 
-void nfc_init() {
+void nfc_init(Scheduler* sched) {
     ENTER;
+    sched_ref = sched;
     // Set an interrupt on the GPO pin
     pinMode(NFC_INT_PIN, INPUT_PULLUP);
     attachInterrupt(NFC_INT_PIN, nfc_isr, FALLING);

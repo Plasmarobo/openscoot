@@ -60,7 +60,6 @@ Uses `SPI`
 Uses Pin D5 - CS
 Uses Pin D6 - INT
 
-
 ## LORA Featherwing
 Uses `SPI`
 Configure Pin C (D9)- CS
@@ -84,3 +83,6 @@ Configure Pins
 KeyA - (A1)
 KeyB - (A2)
 Neopixel - (A3)
+
+# Anaglog Brake
+A5 - GPIO8

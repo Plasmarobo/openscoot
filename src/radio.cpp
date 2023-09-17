@@ -43,11 +43,13 @@ RingBuffer<RadioMessageBuffer, TX_QUEUE_LEN> tx_ring;
 RadioMessageBuffer tx_working_buffer;
 RadioMessageBuffer rx_working_buffer;
 uint8_t task_handle;
+Scheduler* sched_ref;
 
 void delayed_init_cb(void* ctx) {
     if (driver_state == RADIO_UNINITIALIZED) {
         digitalWrite(RFM95_RST, HIGH);
-        call_deferred(SCHED_MILLISECONDS(INIT_DELAY_MS), delayed_init_cb);
+        call_deferred(sched_ref, SCHED_MILLISECONDS(INIT_DELAY_MS),
+                      delayed_init_cb, __PRETTY_FUNCTION__);
     } else {
         if (!radio.init()) {
             report_error("Radio init failed");
@@ -59,9 +61,8 @@ void delayed_init_cb(void* ctx) {
             return;
         }
         radio.setTxPower(RF95_POWER, false);
-        Scheduler* sched = get_global_scheduler();
-        if (sched != NULL) {
-            sched->start_task(task_handle);
+        if (sched_ref != NULL) {
+            sched_ref->start_task(task_handle);
         } else {
             report_error("Radio: global scheduler not available");
         }
@@ -95,13 +96,16 @@ void radio_update_cb(void* ctx) {
 
 void radio_init(Scheduler* sched) {
     ENTER;
+    sched_ref = sched;
     task_handle = 0;
     digitalWrite(RFM95_RST, LOW);
     driver_state = RADIO_UNINITIALIZED;
     if (NULL != sched) {
         task_handle = sched->register_task(
-            SCHED_MILLISECONDS(RADIO_UPDATE_PERIOD_MS), radio_update_cb);
-        call_deferred(SCHED_MILLISECONDS(INIT_DELAY_MS), delayed_init_cb);
+            "radio", SCHED_MILLISECONDS(RADIO_UPDATE_PERIOD_MS),
+            radio_update_cb);
+        call_deferred(sched_ref, SCHED_MILLISECONDS(INIT_DELAY_MS),
+                      delayed_init_cb, __PRETTY_FUNCTION__);
     }
     EXIT;
 }

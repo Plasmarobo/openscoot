@@ -25,8 +25,8 @@ void gps_init(Scheduler* sched) {
     GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
     GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
     if (NULL != sched) {
-        task_handle = sched->register_task(SCHED_MILLISECONDS(GPS_POLLRATE_MS),
-                                           gps_task_cb);
+        task_handle = sched->register_task(
+            "gps", SCHED_MILLISECONDS(GPS_POLLRATE_MS), gps_task_cb);
         sched->start_task(task_handle);
     }
     EXIT;
