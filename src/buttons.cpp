@@ -6,7 +6,7 @@
 #include "scheduler.h"
 #include "trace.h"
 
-#define BUTTON_DEBOUNCE_MS (9)
+#define BUTTON_DEBOUNCE_MS (25)
 #define TRIGGERED_INVALID (0)
 
 namespace {

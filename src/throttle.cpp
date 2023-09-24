@@ -31,7 +31,7 @@
 #define ADC_MIN (0)
 #define ADC_MAX (4095)
 
-#define THROTTLE_LOWPASS_LENGTH (2)
+#define THROTTLE_LOWPASS_LENGTH (3)
 #define THROTTLE_SMOOTHING (16)
 #define MAX_THROTTLE_VALUE (3110)
 #define MIN_THROTTLE_VALUE (970)
@@ -71,7 +71,8 @@ void update_throttle_cb(void* ctx) {
     }
     // Scale throttle to limit
     throttle_data.current = (throttle_data.current * throttle_data.limit) >> 8;
-    if (throttle_data.enabled) {
+    if (throttle_data.state == THROTTLE_STATE_UNLOCKED) {
+        display_set_kph(throttle_data.current);
         // Map throttle to motor command
         int32_t cycle = (throttle_data.current * DUTY_CYCLE_MAX) /
                         THROTTLE_EFFECTIVE_MAXIMUM;
@@ -94,13 +95,15 @@ void throttle_init(Scheduler* sched) {
     EXIT;
 }
 
-void throttle_enable(bool enable) {
-    throttle_data.enabled = enable;
-    if (!enable) {
+void throttle_set_state(uint8_t state) {
+    throttle_data.state |= state;
+    if (throttle_data.state != THROTTLE_STATE_UNLOCKED) {
         throttle_data.current = 0;
         throttle_lowpass = 0;
     }
 }
+
+void throttle_reset_state(uint8_t state) { throttle_data.state &= ~state; }
 
 void throttle_set_limit(int16_t limit) { throttle_data.limit = limit; }
 #else

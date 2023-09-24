@@ -7,6 +7,7 @@
 #include "scheduler.h"
 
 #define NFC_MESSAGE_SIZE (40)
+#define B64_MESSAGE_SIZE (4 * NFC_MESSAGE_SIZE / 3)
 #define NFC_DATA_SIZE (NFC_MESSAGE_SIZE - sizeof(NFCMessageHeader))
 
 typedef struct __attribute__((packed)) {

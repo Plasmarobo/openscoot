@@ -183,6 +183,7 @@ void Scheduler::run() {
             ptr->onfree(ptr);
         }
     }
+    vTaskDelay(1);
     PERF("Scheduler", "Exit");
 }
 void Scheduler::start_task(uint8_t id, Timespan_t delay) {

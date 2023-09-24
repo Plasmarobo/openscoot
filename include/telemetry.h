@@ -3,7 +3,7 @@
 #include <scheduler.h>
 #include <stdint.h>
 
-#define TELEMETRY_MAX_LENGTH (64)
+#define TELEMETRY_MAX_LENGTH (128)
 
 struct TeleMessage {
     const char* topic;
@@ -13,3 +13,4 @@ struct TeleMessage {
 void telemetry_init(Scheduler* sched);
 bool telemetry_send_message(TeleMessage& msg);
 bool telemetry_send_message(const char* topic, const char* fmt, ...);
+bool telemetry_is_connected();

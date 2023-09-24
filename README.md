@@ -62,9 +62,15 @@ Uses Pin D6 - INT
 
 ## LORA Featherwing
 Uses `SPI`
-Configure Pin C (D9)- CS
-Configure Pin D (D10) - INT
-Configure Pin E (D11) - RST
+Configure Pin C (D9)- RST
+Configure Pin B (D10) - INT
+Configure Pin A (D11) - CS
+MAPPING
+    A - D11
+    B - D10
+    C - D9
+    D - D6
+    E - D5
 
 ## Seven segment featherwing
 Uses `I2C`

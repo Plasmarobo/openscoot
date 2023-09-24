@@ -53,11 +53,11 @@ void update_brake_cb(void* ctx) {
         brake_data.value = BRAKE_UPPER_DEADBAND;
     }
     if (brake_data.value > 0) {
-        throttle_enable(false);
+        throttle_set_state(THROTTLE_STATE_BRAKE);
         motor_driver_set_duty_cycle(VESC_FRONT_ADDRESS, 0);
         motor_driver_set_duty_cycle(VESC_REAR_ADDRESS, 0);
     } else {
-        throttle_enable(true);
+        throttle_reset_state(THROTTLE_STATE_BRAKE);
     }
 }
 }  // namespace

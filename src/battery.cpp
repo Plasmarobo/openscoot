@@ -8,45 +8,45 @@
 #include "errors.h"
 #include "motor_driver.h"
 #include "scheduler.h"
+#include "telemetry.h"
 #include "trace.h"
 
-#define PACK_MIN_VOLTAGE (35)
-#define PACK_SAFETY_VOLTAGE (45)
-#define PACK_MAX_VOLTAGE (54)
+// Volts are measured in decavolts (1/10th of a volt)
+#define PACK_MIN_VOLTAGE (350)
+#define PACK_SAFETY_VOLTAGE (450)
+#define PACK_MAX_VOLTAGE (540)
 #define PACK_AH (36)
+#define SCALED_PACK_AH (PACK_AH * 10000)
 #define PACK_INVALID_VOLTAGE (-1)
 
 // We don't need fast battery updates, every 30+ seconds should be fine
-#define BATTERY_UPDATE_PERIOD_MS (1000)
+#define BATTERY_UPDATE_PERIOD_MS (30000)
 
 namespace {
 void update_battery_cb(void* ctx);
-volatile int16_t battery_voltage;
 
 void update_battery_cb(void* ctx) {
     VESCState state = motor_driver_get_state(VESC_FRONT_ADDRESS);
-    battery_voltage = state.volts_in / 10;
-    if (battery_voltage < PACK_SAFETY_VOLTAGE) {
+    if (state.volts_in < PACK_SAFETY_VOLTAGE) {
         report_error("Battery requires charge");
     }
-    if (battery_voltage < PACK_MIN_VOLTAGE) {
+    if (state.volts_in < PACK_MIN_VOLTAGE) {
         report_fault("Battery SoC critical");
     }
     // AH used is in 1/10000 of an amp
-    int32_t percent =
-        (((PACK_AH * 10000) - state.ah_used) * 100) / (PACK_AH * 10000);
+    int32_t remaining_ah = (SCALED_PACK_AH - state.ah_used);
+    int32_t percent = (100 * remaining_ah) / SCALED_PACK_AH;
     display_set_battery_charge(percent, state.volts_in);
 }
 }  // namespace
 
 void battery_init(Scheduler* sched) {
     ENTER;
-    battery_voltage = PACK_INVALID_VOLTAGE;
+
     if (NULL != sched) {
-        sched->register_task("battery",
-                             SCHED_MILLISECONDS(BATTERY_UPDATE_PERIOD_MS),
-                             update_battery_cb, TASK_FLAG_ENABLED);
+        sched->register_task(
+            "battery", SCHED_MILLISECONDS(BATTERY_UPDATE_PERIOD_MS),
+            update_battery_cb, TASK_FLAG_ENABLED, SCHED_MILLISECONDS(5000));
     }
     EXIT;
 }
-void set_battery_voltage(int16_t voltage) { battery_voltage = voltage; }

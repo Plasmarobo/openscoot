@@ -3,8 +3,9 @@
 #if defined(ARDUINO)
 #include <RH_RF95.h>
 #include <SPI.h>
+#define RADIO_MESSAGE_MAX_LEN (RH_RF95_MAX_MESSAGE_LEN)
 #else
-#define RH_RF95_MAX_MESSAGE_LEN (8)
+#define RADIO_MESSAGE_MAX_LEN (250)
 #endif
 #include <framework.h>
 #include <stdint.h>
@@ -12,7 +13,7 @@
 #include "scheduler.h"
 
 typedef struct {
-    uint8_t data[RH_RF95_MAX_MESSAGE_LEN];
+    uint8_t data[RADIO_MESSAGE_MAX_LEN];
     uint8_t size;
 } RadioMessageBuffer;
 

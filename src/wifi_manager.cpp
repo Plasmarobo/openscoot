@@ -21,13 +21,17 @@ WiFiMulti wifim;
 
 void wifi_cb(void* ctx) {
     if (WL_CONNECTED != status) {
+        display_set_wifi_signal(0);
         status = wifim.run();
         wifi_scan_timer = sched_ref->schedule_time();
+    } else {
+        display_set_wifi_signal(1);
     }
 }
 
 void wifi_init(Scheduler* sched) {
     wifim.addAP(SSID, PSK);
+    display_set_wifi_signal(0);
     status = wifim.run();
     if (sched) {
         sched_ref = sched;

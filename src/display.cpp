@@ -4,6 +4,7 @@
 #define ENABLE_ST7XX_FRAMEBUFFER (1)
 
 #include <Adafruit_GFX.h>
+#include <Adafruit_LEDBackpack.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_ST7789.h>
 #include <SPI.h>
@@ -52,10 +53,14 @@
 #define N_CPU_PIXELS (1)
 #define N_KEY_PIXELS (2)
 
+#define ALPHANUM_ADDR (0x70)
+#define ALPHANUM_SIZE (5)
+
 // Display flow [ LOCK ] <-> [ READY ]
 namespace {
 void update_display_cb(void* ctx);
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+Adafruit_AlphaNum4 alphanum = Adafruit_AlphaNum4();
 uint8_t task_handle;
 GFXcanvas16 framebuffer(DISPLAY_W, DISPLAY_H);
 DisplayData display_data;
@@ -65,6 +70,7 @@ Adafruit_NeoPixel cpu_pixel(N_CPU_PIXELS, CPU_NEOPIXEL_PIN,
                             NEO_GRB + NEO_KHZ800);
 Adafruit_NeoPixel key_pixels(N_KEY_PIXELS, KEY_NEOPIXEL_PIN,
                              NEO_GRB + NEO_KHZ800);
+char alphanum_buffer[ALPHANUM_SIZE];
 
 void draw_battery_status(uint8_t percent, int16_t voltage) {
     const size_t n_display = 5;
@@ -73,7 +79,7 @@ void draw_battery_status(uint8_t percent, int16_t voltage) {
     framebuffer.drawRGBBitmap(ICON_PAD, ICON_PAD,
                               icon_battery_level_100_charged, ICON_WIDTH,
                               ICON_HEIGHT);
-    snprintf(buf, buffer_len, "%03u% (%02d.%01d)", percent, voltage / 10,
+    snprintf(buf, buffer_len, "%02u % (%02d.%01d)", percent, voltage / 10,
              voltage % 10);
     const int16_t x = ICON_PAD + ICON_WIDTH, y = ICON_PAD;
     int16_t w = (GRID_WIDTH * percent) / 100;
@@ -115,19 +121,33 @@ void draw_battery_status(uint8_t percent, int16_t voltage) {
 }
 
 void draw_radio_signal(uint8_t sig) {
-    framebuffer.drawRGBBitmap((DISPLAY_W) - (ICON_WIDTH + (ICON_PAD * 2)),
-                              ICON_PAD, icon_satellite, ICON_WIDTH,
-                              ICON_HEIGHT);
+    if (sig) {
+        framebuffer.drawRGBBitmap((DISPLAY_W) - (ICON_WIDTH + (ICON_PAD * 2)),
+                                  ICON_PAD, icon_satellite, ICON_WIDTH,
+                                  ICON_HEIGHT);
+    }
 }
 
 void draw_nfc_icon(uint8_t nfc) {
-    framebuffer.drawRGBBitmap(ICON_PAD, (ICON_HEIGHT + ICON_PAD), icon_rfid,
-                              ICON_WIDTH, ICON_HEIGHT);
+    if (nfc) {
+        framebuffer.drawRGBBitmap(ICON_PAD, (ICON_HEIGHT + ICON_PAD), icon_rfid,
+                                  ICON_WIDTH, ICON_HEIGHT);
+    }
 }
 void draw_wifi_icon(uint8_t sig) {
-    framebuffer.drawRGBBitmap(
-        (DISPLAY_W) - (ICON_WIDTH + (ICON_PAD * 2)), (ICON_HEIGHT + ICON_PAD),
-        icon_network_wireless_no_route, ICON_WIDTH, ICON_HEIGHT);
+    const uint16_t* bmp;
+    switch (sig) {
+        case 1:
+            bmp = icon_network_wireless_signal_ok;
+            break;
+        case 0:  // intentional fallthrough
+        default:
+            bmp = icon_network_wireless_no_route;
+            break;
+    }
+    framebuffer.drawRGBBitmap((DISPLAY_W) - (ICON_WIDTH + (ICON_PAD * 2)),
+                              (ICON_HEIGHT + ICON_PAD), bmp, ICON_WIDTH,
+                              ICON_HEIGHT);
 }
 
 void draw_speed_bar(uint16_t kph, uint16_t limit) {
@@ -162,6 +182,7 @@ void draw_speed_bar(uint16_t kph, uint16_t limit) {
     framebuffer.setCursor(text_x, text_y);
     framebuffer.print(buf);
 }
+
 void draw_status_text(const char* line) {
     const int16_t x = ICON_PAD,
                   y = DISPLAY_H - (GRID_HEIGHT / 2) - (ICON_HEIGHT / 2);
@@ -193,7 +214,11 @@ void update_display_cb(void* ctx) {
                       framebuffer.height());
     cpu_pixel.clear();
     key_pixels.clear();
-
+    alphanum.clear();
+    alphanum.writeDigitAscii(0, alphanum_buffer[0]);
+    alphanum.writeDigitAscii(1, alphanum_buffer[1], true);
+    alphanum.writeDigitAscii(2, alphanum_buffer[2]);
+    alphanum.writeDigitAscii(3, alphanum_buffer[3]);
     for (uint8_t i = 0; i < N_CPU_PIXELS; ++i) {
         cpu_pixel.setPixelColor(
             i, cpu_pixel.Color(cpu_color[i].r, cpu_color[i].g, cpu_color[i].b));
@@ -206,6 +231,7 @@ void update_display_cb(void* ctx) {
     }
     cpu_pixel.show();
     key_pixels.show();
+    alphanum.writeDisplay();
 }
 }  // namespace
 
@@ -220,6 +246,13 @@ void display_init(Scheduler* sched) {
     tft.init(DISPLAY_H, DISPLAY_W);
     tft.setRotation(3);
     tft.fillScreen(ST77XX_BLACK);
+    alphanum.begin(ALPHANUM_ADDR);
+    alphanum.clear();
+    alphanum.writeDigitAscii(0, 'B');
+    alphanum.writeDigitAscii(1, '0');
+    alphanum.writeDigitAscii(2, '0');
+    alphanum.writeDigitAscii(3, 'T');
+    alphanum.writeDisplay();
     display_data = {.kph = 0 * KPH_RESOLUTION,
                     .limit = 30 * KPH_RESOLUTION,
                     .charge = 50,
@@ -228,7 +261,7 @@ void display_init(Scheduler* sched) {
                     .nfc_status = 0,
                     .locked = true};
     memset(display_data.status_line, '\0', STATUS_LINE_MAX);
-
+    memset(alphanum_buffer, '\0', ALPHANUM_SIZE);
     cpu_color[0] = {.r = 0, .g = 32, .b = 0};
     key_colors[0] = {.r = 16, .g = 0, .b = 0};
     key_colors[1] = {.r = 16, .g = 0, .b = 0};
@@ -236,7 +269,6 @@ void display_init(Scheduler* sched) {
     key_pixels.begin();
     cpu_pixel.show();
     key_pixels.show();
-
     if (NULL != sched) {
         task_handle = sched->register_task(
             "display", SCHED_MILLISECONDS(DISPLAY_UPDATE_MS), update_display_cb,
@@ -245,10 +277,14 @@ void display_init(Scheduler* sched) {
     EXIT;
 }
 
-void display_set_kph(uint16_t kph) { display_data.kph = kph; }
+void display_set_kph(uint16_t kph) {
+    snprintf(alphanum_buffer, ALPHANUM_SIZE, "%02d%02d", kph / 10, kph % 10);
+    display_data.kph = kph;
+}
 void display_set_kph_limit(uint16_t limit) { display_data.limit = limit; }
 void display_set_battery_charge(uint8_t percent_charge, int16_t volts) {
     display_data.charge = percent_charge;
+    display_data.volts = volts;
 }
 void display_set_radio_signal(uint8_t signal) {
     display_data.radio_sig = signal;
